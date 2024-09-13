@@ -37,6 +37,12 @@
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
         </service>
+
+        <service
+            android:name=".FloatingAutoClickService"
+            android:configChanges="orientation"
+            android:enabled="true"
+            android:exported="false"/>
     </application>
 
 </manifest>
