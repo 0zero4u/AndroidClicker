@@ -6,15 +6,18 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.PixelFormat;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
+import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -29,6 +32,9 @@ public class FloatingAutoClickService extends Service {
     private Timer timer;
     private boolean isOn = false;
     private MyAccessibilityService autoClickService = MyAccessibilityService.getInstance();
+
+    private Handler handler;
+    private Runnable runnable;
 
     @Nullable
     @Override
@@ -73,9 +79,9 @@ public class FloatingAutoClickService extends Service {
         super.onDestroy();
 
         Log.d("FloatingClickService", "onDestroy");
-        if (timer != null) {
-            timer.cancel();
-        }
+//        if (timer != null) {
+//            timer.cancel();
+//        }
         if (manager != null && view != null) {
             manager.removeView(view);
         }
@@ -92,13 +98,29 @@ public class FloatingAutoClickService extends Service {
 //                @Override
 //                public void run() {
 //                    view.getLocationOnScreen(location);
+//                    Log.d("FloatingClickService", Arrays.toString(location));
 //                    autoClickService.click(location[0] + view.getRight() + 10,
 //                            location[1] + view.getBottom() + 10);
-//                   //autoClickService.autoClick(100, 2,location[0] + view.getRight() + 10,
-//                      //      location[1] + view.getBottom() + 10);
+//                    autoClickService.autoClick(100, 2,location[0] + view.getRight() + 10,
+//                            location[1] + view.getBottom() + 10);
 //                }
-//            }, 0, 200);
-//        }
+//            }, 0, 200);}
+        if (!isOn) {
+            handler = new Handler();
+            runnable = new Runnable() {
+                @Override
+                public void run() {
+                    Log.d("FloatingClickService", Arrays.toString(location));
+                    view.getLocationOnScreen(location);
+                    autoClickService.click(location[0] + view.getRight() + 10,
+                            location[1] + view.getBottom() + 10);
+                    autoClickService.autoClick(100, 2,location[0] + view.getRight() + 10,
+                            location[1] + view.getBottom() + 10);
+                    handler.postDelayed(this, 200);
+                }
+            };
+        }
+
         Log.d("FloatingClickService", "viewOnClick");
         isOn = !isOn;
         ((TextView) view).setText(isOn ? "ON" : "OFF");
@@ -107,7 +129,6 @@ public class FloatingAutoClickService extends Service {
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        // "FloatingClickService onConfigurationChanged".logd(); // Use Log.d(TAG, "message") in Java
         Log.d("FloatingClickService", "onConfigurationChanged");
         int x = params.x;
         int y = params.y;

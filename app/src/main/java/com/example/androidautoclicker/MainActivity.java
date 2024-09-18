@@ -1,5 +1,6 @@
 package com.example.androidautoclicker;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Point;
 import android.graphics.PointF;
@@ -7,12 +8,14 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResult;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.graphics.Insets;
@@ -33,21 +36,49 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        MyAccessibilityService myAccessibilityService = new MyAccessibilityService();
-        //checkAccessibilityServicePermission();
+        // checkAccessibilityServicePermission();
 
-        button = findViewById(R.id.button);
+        button = findViewById(R.id.startButton);
         button.setOnClickListener(v -> {
+            Intent myIntent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
+            startActivity(myIntent);
+
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || Settings.canDrawOverlays(this)) {
-                serviceIntent = new Intent(MainActivity.this, FloatingAutoClickService.class);
+                Log.d("button clicked", "service start");
+                serviceIntent = new Intent(this, FloatingAutoClickService.class);
                 startService(serviceIntent);
                 onBackPressed();
-            } else {
-                checkAccessibilityServicePermission();
-                Toast.makeText(this, "You need System Alert Window Permission to do this", Toast.LENGTH_SHORT);
-            }
-
+        }
+//            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || Settings.canDrawOverlays(this)) {
+//                Log.d("button clicked", "service start");
+//                serviceIntent = new Intent(MainActivity.this, FloatingAutoClickService.class);
+//                startService(serviceIntent);
+//                onBackPressed();
+//            } else {
+//                Intent myIntent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
+//                startActivity(myIntent);
+//
+//                Toast.makeText(this, "You need System Alert Window Permission to do this", Toast.LENGTH_SHORT);
+//            }
         });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (serviceIntent == null) {
+            stopService(serviceIntent);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        checkAccessibilityServicePermission();
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+//           Intent myIntent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
+//           startActivity(myIntent);
+//        }
     }
 
     public void checkAccessibilityServicePermission() {
@@ -57,24 +88,13 @@ public class MainActivity extends AppCompatActivity {
                 access = Settings.Secure.getInt(this.getContentResolver(), android.provider.Settings.Secure.ACCESSIBILITY_ENABLED);
             } catch (Settings.SettingNotFoundException e){
                 e.printStackTrace();
-                //put a Toast
             }
             if (access == 0) {
                 Intent myIntent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
                 myIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(myIntent);
+                Log.d("checkAccessibilityServicePermission", "ask for access");
             }
         }
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        checkAccessibilityServicePermission();
     }
 }

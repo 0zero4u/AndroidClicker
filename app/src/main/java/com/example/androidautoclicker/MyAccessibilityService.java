@@ -40,7 +40,6 @@ public class MyAccessibilityService extends AccessibilityService {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
-
         // autoClick(2000, 100, 950, 581);
     }
 
