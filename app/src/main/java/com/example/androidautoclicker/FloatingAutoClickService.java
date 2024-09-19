@@ -54,6 +54,7 @@ public class FloatingAutoClickService extends Service {
         } else {
             overlayParam = WindowManager.LayoutParams.TYPE_PHONE;
         }
+
         params = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,

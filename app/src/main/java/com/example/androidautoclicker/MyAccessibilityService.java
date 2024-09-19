@@ -26,8 +26,8 @@ public class MyAccessibilityService extends AccessibilityService {
     //apparently this method is called every time an event occurs
     @Override
     public void onAccessibilityEvent(AccessibilityEvent accessibilityEvent) {
-        System.out.println("access event getEventType " + accessibilityEvent.getEventType());
-        System.out.println("access event getSource " + accessibilityEvent.getSource());
+//        System.out.println("access event getEventType " + accessibilityEvent.getEventType());
+//        System.out.println("access event getSource " + accessibilityEvent.getSource());
 
         // autoClick(2000, 100, 500, 590);
     }
