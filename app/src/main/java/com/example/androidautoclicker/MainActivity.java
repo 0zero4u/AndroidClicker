@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Point;
 import android.graphics.PointF;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -36,49 +37,47 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        // checkAccessibilityServicePermission();
-
         button = findViewById(R.id.startButton);
         button.setOnClickListener(v -> {
-            Intent myIntent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
-            startActivity(myIntent);
-
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || Settings.canDrawOverlays(this)) {
                 Log.d("button clicked", "service start");
-                serviceIntent = new Intent(this, FloatingAutoClickService.class);
+                serviceIntent = new Intent(MainActivity.this, FloatingAutoClickService.class);
                 startService(serviceIntent);
                 onBackPressed();
-        }
-//            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || Settings.canDrawOverlays(this)) {
-//                Log.d("button clicked", "service start");
-//                serviceIntent = new Intent(MainActivity.this, FloatingAutoClickService.class);
-//                startService(serviceIntent);
-//                onBackPressed();
-//            } else {
-//                Intent myIntent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
-//                startActivity(myIntent);
-//
-//                Toast.makeText(this, "You need System Alert Window Permission to do this", Toast.LENGTH_SHORT);
-//            }
+            } else {
+                Intent myIntent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
+                startActivity(myIntent);
+
+                Toast.makeText(this, "You need System Alert Window Permission to do this", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
         if (serviceIntent == null) {
             stopService(serviceIntent);
         }
+
+        super.onDestroy();
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        moveTaskToBack(true);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         checkAccessibilityServicePermission();
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-//           Intent myIntent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
-//           startActivity(myIntent);
-//        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || Settings.canDrawOverlays(this)) {
+//            serviceIntent = new Intent(MainActivity.this, FloatingAutoClickService.class);
+//            startService(serviceIntent);
+            Intent myIntent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
+            startActivity(myIntent);
+        }
     }
 
     public void checkAccessibilityServicePermission() {
@@ -93,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
                 Intent myIntent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
                 myIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(myIntent);
-                Log.d("checkAccessibilityServicePermission", "ask for access");
+                Log.d("checkAccessibilityServicePermission", "ask for AccessibilityServicePermission");
             }
         }
     }
