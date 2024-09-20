@@ -17,6 +17,9 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.graphics.Insets;
@@ -30,6 +33,23 @@ public class MainActivity extends AppCompatActivity {
     private MyAccessibilityService myAccessibilityService;
     private Button button;
     private Intent serviceIntent;
+
+    ActivityResultLauncher<Intent> mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+            new ActivityResultCallback<ActivityResult>() {
+                @Override
+                public void onActivityResult(ActivityResult result) {
+                    Log.d("onActivityResult", "onActivityResult called");
+
+                    startService(serviceIntent);
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        Log.d("onActivityResult", "Activity.RESULT_OK");
+                        Intent intent = result.getData();
+                        // Handle the Intent
+                        serviceIntent = new Intent(MainActivity.this, FloatingAutoClickService.class);
+                        startService(serviceIntent);
+                    }
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,8 +65,8 @@ public class MainActivity extends AppCompatActivity {
                 startService(serviceIntent);
                 onBackPressed();
             } else {
-                Intent myIntent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
-                startActivity(myIntent);
+                Intent myIntent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"));
+                mStartForResult.launch(myIntent);
 
                 Toast.makeText(this, "You need System Alert Window Permission to do this", Toast.LENGTH_SHORT).show();
             }
@@ -75,8 +95,8 @@ public class MainActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || Settings.canDrawOverlays(this)) {
 //            serviceIntent = new Intent(MainActivity.this, FloatingAutoClickService.class);
 //            startService(serviceIntent);
-            Intent myIntent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
-            startActivity(myIntent);
+            Intent myIntent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"));
+            mStartForResult.launch(myIntent);
         }
     }
 
