@@ -1,8 +1,10 @@
 package com.example.androidautoclicker;
 
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.TextView;
 
 public class TouchAndDragListener implements View.OnTouchListener {
     private final WindowManager.LayoutParams params;
@@ -14,6 +16,7 @@ public class TouchAndDragListener implements View.OnTouchListener {
     private float initialTouchX;
     private float initialTouchY;
     private boolean isDrag = false;
+    private MyAccessibilityService autoClickService = MyAccessibilityService.getInstance();
 
     public TouchAndDragListener(WindowManager.LayoutParams params, int startDragDistance, Runnable onTouch, Runnable onDrag) {
         this.params = params;
@@ -60,6 +63,51 @@ public class TouchAndDragListener implements View.OnTouchListener {
                 }
                 break;
         }
+        Log.d("TouchAndDragListener onTouch", event.toString());
         return false;
+    }
+
+    public boolean isDrag() {
+        return isDrag;
+    }
+
+    public void setDrag(boolean drag) {
+        isDrag = drag;
+    }
+
+    public float getInitialTouchY() {
+        return initialTouchY;
+    }
+
+    public void setInitialTouchY(float initialTouchY) {
+        this.initialTouchY = initialTouchY;
+    }
+
+    public float getInitialTouchX() {
+        return initialTouchX;
+    }
+
+    public void setInitialTouchX(float initialTouchX) {
+        this.initialTouchX = initialTouchX;
+    }
+
+    public int getInitialY() {
+        return initialY;
+    }
+
+    public void setInitialY(int initialY) {
+        this.initialY = initialY;
+    }
+
+    public int getInitialX() {
+        return initialX;
+    }
+
+    public void setInitialX(int initialX) {
+        this.initialX = initialX;
+    }
+
+    public int getStartDragDistance() {
+        return startDragDistance;
     }
 }
