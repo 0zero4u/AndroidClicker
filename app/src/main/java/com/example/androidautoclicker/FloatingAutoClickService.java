@@ -8,6 +8,7 @@ import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -33,7 +34,7 @@ public class FloatingAutoClickService extends Service {
     private boolean isOn = false;
     private MyAccessibilityService autoClickService = MyAccessibilityService.getInstance();
 
-    private Handler handler;
+    private Handler handlerOnClick = new Handler(Looper.getMainLooper());
     private Runnable runnable;
 
     @Nullable
@@ -47,6 +48,7 @@ public class FloatingAutoClickService extends Service {
         super.onCreate();
         view = LayoutInflater.from(this).inflate(R.layout.floating_widget, null);
         Log.d("FloatingClickService", "onCreate");
+        //System.out.println("wah");
         // Setting the layout parameters
         int overlayParam;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -80,47 +82,45 @@ public class FloatingAutoClickService extends Service {
         super.onDestroy();
 
         Log.d("FloatingClickService", "onDestroy");
-//        if (timer != null) {
-//            timer.cancel();
-//        }
+        if (timer != null) {
+            timer.cancel();
+        }
         if (manager != null && view != null) {
             manager.removeView(view);
         }
     }
 
     private void viewOnClick() {
-//        if (isOn) {
-//            if (timer != null) {
-//                timer.cancel();
-//            }
-//        } else {
-//            timer = new Timer();
-//            timer.schedule(new TimerTask() {
+//        if (!isOn) {
+//            handlerOnClick = new Handler();
+//            runnable = new Runnable() {
 //                @Override
 //                public void run() {
-//                    view.getLocationOnScreen(location);
 //                    Log.d("FloatingClickService", Arrays.toString(location));
+//                    view.getLocationOnScreen(location);
 //                    autoClickService.click(location[0] + view.getRight() + 10,
 //                            location[1] + view.getBottom() + 10);
 //                    autoClickService.autoClick(100, 2,location[0] + view.getRight() + 10,
 //                            location[1] + view.getBottom() + 10);
 //                }
-//            }, 0, 200);}
-        if (!isOn) {
-            handler = new Handler();
-            runnable = new Runnable() {
-                @Override
-                public void run() {
-                    Log.d("FloatingClickService", Arrays.toString(location));
-                    view.getLocationOnScreen(location);
-                    autoClickService.click(location[0] + view.getRight() + 10,
+//            };
+
+            if (isOn) {
+                if (timer != null)
+                    timer.cancel();
+            } else {
+                timer = new Timer();
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        view.getLocationOnScreen(location);
+                        autoClickService.click(location[0] + view.getRight() + 10,
                             location[1] + view.getBottom() + 10);
-                    autoClickService.autoClick(100, 2,location[0] + view.getRight() + 10,
-                            location[1] + view.getBottom() + 10);
-                    handler.postDelayed(this, 200);
-                }
-            };
-        }
+                        autoClickService.autoClick(100, 2,location[0] + view.getRight() + 10,
+                                location[1] + view.getBottom() + 10);
+                    }
+                }, 0, 200);
+            }
 
         Log.d("FloatingClickService", "viewOnClick");
         isOn = !isOn;
@@ -140,5 +140,9 @@ public class FloatingAutoClickService extends Service {
         if (manager != null) {
             manager.updateViewLayout(view, params);
         }
+    }
+
+    private void runOnUiThread(Runnable runnable) {
+        new Handler(Looper.getMainLooper()).post(runnable);
     }
 }

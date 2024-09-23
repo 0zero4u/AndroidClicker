@@ -72,6 +72,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        if (serviceIntent != null)
+            stopService(serviceIntent);
+
         super.onDestroy();
     }
 
@@ -79,10 +82,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         checkAccessibilityServicePermission();
-//        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || Settings.canDrawOverlays(this)) {
-//            Intent myIntent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"));
-//            mStartForResult.launch(myIntent);
-//        }
+        //if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || Settings.canDrawOverlays(this))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            Intent myIntent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"));
+            mStartForResult.launch(myIntent);
+        }
     }
 
     public void checkAccessibilityServicePermission() {
