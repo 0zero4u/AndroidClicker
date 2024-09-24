@@ -8,6 +8,7 @@ import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -24,6 +25,7 @@ import java.util.TimerTask;
 public class FloatingAutoClickService extends Service {
     private WindowManager manager;
     private View view;
+    private TextView floatingTextView;
     private WindowManager.LayoutParams params;
     private int xForRecord = 0;
     private int yForRecord = 0;
@@ -33,7 +35,9 @@ public class FloatingAutoClickService extends Service {
     private boolean isOn = false;
     private MyAccessibilityService autoClickService = MyAccessibilityService.getInstance();
 
-    private Handler handler;
+    private TouchAndDragListener touchAndDragListener;
+
+    private Handler handlerOnClick = new Handler(Looper.getMainLooper());
     private Runnable runnable;
 
     @Nullable
@@ -46,7 +50,10 @@ public class FloatingAutoClickService extends Service {
     public void onCreate() {
         super.onCreate();
         view = LayoutInflater.from(this).inflate(R.layout.floating_widget, null);
+        floatingTextView = view.findViewById(R.id.floatingTextView);
+
         Log.d("FloatingClickService", "onCreate");
+
         // Setting the layout parameters
         int overlayParam;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -70,9 +77,10 @@ public class FloatingAutoClickService extends Service {
         }
 
         // Adding a touch listener to make drag movement of the floating widget
-        view.setOnTouchListener(new TouchAndDragListener(params, startDragDistance,
+        touchAndDragListener = new TouchAndDragListener(params, startDragDistance,
                 () -> viewOnClick(),
-                () -> manager.updateViewLayout(view, params)));
+                () -> manager.updateViewLayout(view, params));
+        view.setOnTouchListener(touchAndDragListener);
     }
 
     @Override
@@ -80,51 +88,40 @@ public class FloatingAutoClickService extends Service {
         super.onDestroy();
 
         Log.d("FloatingClickService", "onDestroy");
-//        if (timer != null) {
-//            timer.cancel();
-//        }
+        if (timer != null) {
+            timer.cancel();
+        }
         if (manager != null && view != null) {
             manager.removeView(view);
         }
     }
 
     private void viewOnClick() {
-//        if (isOn) {
-//            if (timer != null) {
-//                timer.cancel();
-//            }
-//        } else {
-//            timer = new Timer();
-//            timer.schedule(new TimerTask() {
-//                @Override
-//                public void run() {
-//                    view.getLocationOnScreen(location);
-//                    Log.d("FloatingClickService", Arrays.toString(location));
-//                    autoClickService.click(location[0] + view.getRight() + 10,
-//                            location[1] + view.getBottom() + 10);
-//                    autoClickService.autoClick(100, 2,location[0] + view.getRight() + 10,
-//                            location[1] + view.getBottom() + 10);
-//                }
-//            }, 0, 200);}
         if (!isOn) {
-            handler = new Handler();
+            handlerOnClick = new Handler();
             runnable = new Runnable() {
                 @Override
                 public void run() {
-                    Log.d("FloatingClickService", Arrays.toString(location));
+                    Log.d("FloatingClickService getLocationOnScreen", Arrays.toString(location));
                     view.getLocationOnScreen(location);
-                    autoClickService.click(location[0] + view.getRight() + 10,
-                            location[1] + view.getBottom() + 10);
-                    autoClickService.autoClick(100, 2,location[0] + view.getRight() + 10,
-                            location[1] + view.getBottom() + 10);
-                    handler.postDelayed(this, 200);
+//                    autoClickService.click(location[0] + view.getRight() + 10,
+//                            location[1] + view.getBottom() + 10);
+//                    autoClickService.autoClick(100, 2, location[0] + view.getRight() + 10,
+//                            location[1] + view.getBottom() + 10);
+
+                    String locX = Float.toString(touchAndDragListener.getInitialX()) + " " + Float.toString(touchAndDragListener.getInitialTouchX());
+                    String locY = Float.toString(touchAndDragListener.getInitialY()) + " " + Float.toString(touchAndDragListener.getInitialTouchY());
+
+                    Log.d("FloatingClickService touchAndDragListener", locX + ", " + locY);
+                    autoClickService.autoClick(100, 2, touchAndDragListener.getInitialX(), touchAndDragListener.getInitialY());
                 }
             };
+            handlerOnClick.postDelayed(runnable, 200);
         }
 
         Log.d("FloatingClickService", "viewOnClick");
         isOn = !isOn;
-        ((TextView) view).setText(isOn ? "ON" : "OFF");
+        floatingTextView.setText(isOn ? "ON" : "OFF");
     }
 
     @Override
@@ -140,5 +137,9 @@ public class FloatingAutoClickService extends Service {
         if (manager != null) {
             manager.updateViewLayout(view, params);
         }
+    }
+
+    private void runOnUiThread(Runnable runnable) {
+        new Handler(Looper.getMainLooper()).post(runnable);
     }
 }
