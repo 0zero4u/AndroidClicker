@@ -5,7 +5,7 @@ import android.graphics.Path
 import android.graphics.Point
 
 sealed class CustomEvent(private val startTime: Long = 10L, private val duration: Long = 10L) {
-    private val path = Path()
+    protected val path = Path()  // Change to protected to allow access in subclasses
 
     fun onEvent(): GestureDescription.StrokeDescription {
         path.reset()
@@ -31,4 +31,4 @@ class Swipe(private val start: Point, private val end: Point, startTime: Long = 
         path.moveTo(start.x.toFloat(), start.y.toFloat())
         path.lineTo(end.x.toFloat(), end.y.toFloat())
     }
-}
+    }
