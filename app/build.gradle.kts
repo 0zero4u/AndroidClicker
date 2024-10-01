@@ -1,4 +1,4 @@
-// AndroidClicker-main/app/build.gradle.kts
+
 plugins {
     alias(libs.plugins.android.application)
     kotlin("android") // Add Kotlin plugin
