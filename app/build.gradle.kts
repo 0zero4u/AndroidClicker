@@ -1,5 +1,7 @@
+// AndroidClicker-main/app/build.gradle.kts
 plugins {
     alias(libs.plugins.android.application)
+    kotlin("android") // Add Kotlin plugin
 }
 
 android {
@@ -29,13 +31,16 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
 }
 
 dependencies {
-
+    implementation(libs.core.ktx) // Add Kotlin core library
     implementation(libs.appcompat)
     implementation(libs.material)
-    implementation(libs.activity)
     implementation(libs.constraintlayout)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
