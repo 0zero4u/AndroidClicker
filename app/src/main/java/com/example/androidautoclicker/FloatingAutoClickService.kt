@@ -10,7 +10,7 @@ import android.util.Log
 import android.view.*
 import android.widget.TextView
 import androidx.core.content.ContextCompat
-
+import androidx.core.view.ViewCompat
 
 class FloatingAutoClickService : AccessibilityService() {
 
@@ -20,7 +20,7 @@ class FloatingAutoClickService : AccessibilityService() {
     private var params: WindowManager.LayoutParams? = null
     private var xForRecord = 0
     private var yForRecord = 0
-    private var startDragDistance = 0
+    private var startDragDistance = ViewConfiguration.get(context).scaledTouchSlopDistance
     private var touchAndDragListener: TouchAndDragListener? = null
 
     private enum class ClickMode {
@@ -29,8 +29,9 @@ class FloatingAutoClickService : AccessibilityService() {
 
     private var currentMode = ClickMode.CLICK
 
-    override fun onBind(intent: Intent?): IBinder? = null
-
+    override fun onBind(intent: Intent?): IBinder? {
+        return super.onBind(intent)
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -52,7 +53,6 @@ class FloatingAutoClickService : AccessibilityService() {
             PixelFormat.TRANSLUCENT
         )
 
-
         manager = getSystemService(WINDOW_SERVICE) as WindowManager
         manager?.addView(view, params)
 
@@ -70,18 +70,16 @@ class FloatingAutoClickService : AccessibilityService() {
         floatingTextView?.text = if (currentMode == ClickMode.CLICK) "CLICK" else "SWIPE"
     }
 
-
     private fun performAction(x: Int, y: Int) {
         when (currentMode) {
-            ClickMode.CLICK -> autoClick(x,y)
-            ClickMode.SWIPE -> autoSwipe(x,y, x + 100, y) // Example swipe
+            ClickMode.CLICK -> autoClick(x, y)
+            ClickMode.SWIPE -> autoSwipe(x, y, x + 100, y) // Example swipe
         }
     }
 
     private fun autoClick(x: Int, y: Int) {
         val click = Click(Point(x, y))
         dispatchGesture(GestureDescription.Builder().addStroke(click.onEvent()).build(), null, null)
-
     }
 
     private fun autoSwipe(x1: Int, y1: Int, x2: Int, y2: Int) {
@@ -89,11 +87,9 @@ class FloatingAutoClickService : AccessibilityService() {
         dispatchGesture(GestureDescription.Builder().addStroke(swipe.onEvent()).build(), null, null)
     }
 
-
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
 
     override fun onInterrupt() {}
-
 
     override fun onDestroy() {
         super.onDestroy()
@@ -105,9 +101,9 @@ class FloatingAutoClickService : AccessibilityService() {
         val x = params?.x ?: 0
         val y = params?.y ?: 0
         params?.x = xForRecord
-        params?.y = yForRecord
-        xForRecord = x
-        yForRecord = y
+        params?.y = y for record
+        x for record = x
+        y for record = y
         manager?.updateViewLayout(view, params)
     }
 
@@ -121,9 +117,8 @@ class FloatingAutoClickService : AccessibilityService() {
         private var initialX = 0
         private var initialY = 0
         private var initialTouchX = 0f
-        private var initialTouchY = 0f
+        private var initialTouchY = 0 f
         private var isDrag = false
-
 
         override fun onTouch(v: View, event: MotionEvent): Boolean {
             when (event.actionMasked) {
@@ -132,6 +127,7 @@ class FloatingAutoClickService : AccessibilityService() {
                     initialY = paramsF?.y ?: 0
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
+                    isDrag = false
                     return true
                 }
 
@@ -147,7 +143,6 @@ class FloatingAutoClickService : AccessibilityService() {
                     return true
                 }
 
-
                 MotionEvent.ACTION_UP -> {
                     if (!isDrag) {
                         performAction(event.rawX.toInt(), event.rawY.toInt())
@@ -155,7 +150,6 @@ class FloatingAutoClickService : AccessibilityService() {
                         return true
                     }
                 }
-
             }
             return false
         }
