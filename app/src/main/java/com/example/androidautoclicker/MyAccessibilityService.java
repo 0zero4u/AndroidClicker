@@ -4,30 +4,20 @@ import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
 import android.content.Intent;
 import android.graphics.Path;
-import android.graphics.PointF;
-import android.os.Build;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.accessibility.AccessibilityEvent;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class MyAccessibilityService extends AccessibilityService {
     private static final String TAG = AccessibilityService.class.getName();
     private static MyAccessibilityService myAccessibilityService;
-    private final List<CustomEvent> events = new ArrayList<>();
 
     @Override
     public void onCreate() {
         super.onCreate();
     }
 
-    //apparently this method is called every time an event occurs
     @Override
     public void onAccessibilityEvent(AccessibilityEvent accessibilityEvent) {
-//        System.out.println("access event getEventType " + accessibilityEvent.getEventType());
-//        System.out.println("access event getSource " + accessibilityEvent.getSource());
     }
 
     @Override
@@ -45,27 +35,38 @@ public class MyAccessibilityService extends AccessibilityService {
 
     }
 
-    public void click(int x, int y) {
-        System.out.println("click " + x + " " + y);
+
+    public void autoClick(int startTimeMs, int durationMs, int x, int y) {
+        boolean isCalled = dispatchGesture(gestureDescription(startTimeMs, durationMs, x, y), null, null);
+        System.out.println("Click performed: " + isCalled);
+    }
+
+    public void autoSwipe(int startTimeMs, int durationMs, int x1, int y1, int x2, int y2) {
+        Path swipePath = new Path();
+        swipePath.moveTo(x1, y1);
+        swipePath.lineTo(x2, y2);
+
+        GestureDescription.StrokeDescription stroke = new GestureDescription.StrokeDescription(swipePath, startTimeMs, durationMs);
+        boolean isCalled = dispatchGesture(createGestureDescription(stroke), null, null);
+        System.out.println("Swipe performed: " + isCalled);
+    }
+
+    private GestureDescription gestureDescription(int startTimeMs, int durationMs, int x, int y) {
         Path path = new Path();
         path.moveTo(x, y);
-        GestureDescription.Builder builder = new GestureDescription.Builder();
-        GestureDescription gestureDescription = builder
-                .addStroke(new GestureDescription.StrokeDescription(path, 10, 10))
-                .build();
-        dispatchGesture(gestureDescription, null, null);
+        return createGestureDescription(new GestureDescription.StrokeDescription(path, startTimeMs, durationMs));
     }
 
-    public void run(List<CustomEvent> newEvents) {
-        events.clear();
-        events.addAll(newEvents);
 
+    private GestureDescription createGestureDescription(GestureDescription.StrokeDescription... strokes) {
         GestureDescription.Builder builder = new GestureDescription.Builder();
-        for (CustomEvent event : events) {
-            builder.addStroke(event.onEvent());
+        for (GestureDescription.StrokeDescription stroke : strokes) {
+            builder.addStroke(stroke);
         }
-        dispatchGesture(builder.build(), null, null);
+        return builder.build();
     }
+
+
 
     @Override
     public boolean onUnbind(Intent intent) {
@@ -81,26 +82,10 @@ public class MyAccessibilityService extends AccessibilityService {
         super.onDestroy();
     }
 
+
     public static MyAccessibilityService getInstance() {
         return myAccessibilityService;
     }
 
-    public void autoClick(int startTimeMs, int durationMs, int x, int y) {
-        boolean isCalled = dispatchGesture(gestureDescription(startTimeMs, durationMs, x, y), null, null);
-        System.out.println(isCalled);
-    }
 
-    public GestureDescription gestureDescription(int startTimeMs, int durationMs, int x, int y) {
-        Path path = new Path();
-        path.moveTo(x, y);
-        return createGestureDescription(new GestureDescription.StrokeDescription(path, startTimeMs, durationMs));
-    }
-
-    public GestureDescription createGestureDescription(GestureDescription.StrokeDescription... strokes) {
-        GestureDescription.Builder builder = new GestureDescription.Builder();
-        for (GestureDescription.StrokeDescription stroke : strokes) {
-            builder.addStroke(stroke);
-        }
-        return builder.build();
-    }
 }
