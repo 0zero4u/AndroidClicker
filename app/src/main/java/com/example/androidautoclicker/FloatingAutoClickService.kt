@@ -1,21 +1,19 @@
 package com.example.androidautoclicker
 
-import android.app.Service
-import android.content.Context
+import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.MotionEvent
-import android.view.View
-import android.view.WindowManager
+import android.view.*
 import android.widget.TextView
-import androidx.annotation.Nullable
+import androidx.core.content.ContextCompat
 
-object FloatingAutoClickService : Service() {
+
+class FloatingAutoClickService : AccessibilityService() {
+
     private var manager: WindowManager? = null
     private var view: View? = null
     private var floatingTextView: TextView? = null
@@ -31,13 +29,12 @@ object FloatingAutoClickService : Service() {
 
     private var currentMode = ClickMode.CLICK
 
-    @Nullable
-    override fun onBind(intent: Intent): IBinder? {
-        return null
-    }
+    override fun onBind(intent: Intent?): IBinder? = null
+
 
     override fun onCreate() {
         super.onCreate()
+
         view = LayoutInflater.from(this).inflate(R.layout.floating_widget, null)
         floatingTextView = view?.findViewById(R.id.floatingTextView)
 
@@ -55,14 +52,16 @@ object FloatingAutoClickService : Service() {
             PixelFormat.TRANSLUCENT
         )
 
-        manager = getSystemService(Context.WINDOW_SERVICE) as WindowManager?
+
+        manager = getSystemService(WINDOW_SERVICE) as WindowManager
         manager?.addView(view, params)
 
-        touchAndDragListener = TouchAndDragListener(params, startDragDistance,
+        touchAndDragListener = TouchAndDragListener(
+            params,
+            startDragDistance,
             onTouch = { switchMode() },
-            onDrag = { manager?.updateViewLayout(view, params) })
-
-
+            onDrag = { manager?.updateViewLayout(view, params) }
+        )
         view?.setOnTouchListener(touchAndDragListener)
     }
 
@@ -71,12 +70,29 @@ object FloatingAutoClickService : Service() {
         floatingTextView?.text = if (currentMode == ClickMode.CLICK) "CLICK" else "SWIPE"
     }
 
-    private fun performAction(x: Float, y: Float) {
+
+    private fun performAction(x: Int, y: Int) {
         when (currentMode) {
-            ClickMode.CLICK -> MyAccessibilityService.autoClick(0, 10, x.toInt(), y.toInt())
-            ClickMode.SWIPE -> MyAccessibilityService.autoSwipe(0, 500, x.toInt(), y.toInt(), x.toInt() + 100, y.toInt())
+            ClickMode.CLICK -> autoClick(x,y)
+            ClickMode.SWIPE -> autoSwipe(x,y, x + 100, y) // Example swipe
         }
     }
+
+    private fun autoClick(x: Int, y: Int) {
+        val click = Click(Point(x, y))
+        dispatchGesture(GestureDescription.Builder().addStroke(click.onEvent()).build(), null, null)
+
+    }
+
+    private fun autoSwipe(x1: Int, y1: Int, x2: Int, y2: Int) {
+        val swipe = Swipe(Point(x1, y1), Point(x2, y2))
+        dispatchGesture(GestureDescription.Builder().addStroke(swipe.onEvent()).build(), null, null)
+    }
+
+
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
+
+    override fun onInterrupt() {}
 
 
     override fun onDestroy() {
@@ -96,53 +112,58 @@ object FloatingAutoClickService : Service() {
     }
 
     private inner class TouchAndDragListener(
-        private val params: WindowManager.LayoutParams?,
+        private val paramsF: WindowManager.LayoutParams?,
         private val startDragDistance: Int,
         private val onTouch: Runnable?,
         private val onDrag: Runnable?
     ) : View.OnTouchListener {
+
         private var initialX = 0
         private var initialY = 0
         private var initialTouchX = 0f
         private var initialTouchY = 0f
         private var isDrag = false
 
-        private fun isDragging(event: MotionEvent): Boolean {
-            val dx = event.rawX - initialTouchX
-            val dy = event.rawY - initialTouchY
-            return (dx * dx + dy * dy) > startDragDistance * startDragDistance
-        }
 
         override fun onTouch(v: View, event: MotionEvent): Boolean {
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-                    isDrag = false
-                    initialX = params?.x ?: 0
-                    initialY = params?.y ?: 0
+                    initialX = paramsF?.x ?: 0
+                    initialY = paramsF?.y ?: 0
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
                     return true
                 }
+
                 MotionEvent.ACTION_MOVE -> {
                     if (!isDrag && isDragging(event)) {
                         isDrag = true
                     }
-                    if (!isDrag) return true
-                    params?.x = initialX + (event.rawX - initialTouchX).toInt()
-                    params?.y = initialY + (event.rawY - initialTouchY).toInt()
-                    onDrag?.run()
+                    if (isDrag) {
+                        paramsF?.x = initialX + (event.rawX - initialTouchX).toInt()
+                        paramsF?.y = initialY + (event.rawY - initialTouchY).toInt()
+                        onDrag?.run()
+                    }
                     return true
                 }
+
+
                 MotionEvent.ACTION_UP -> {
                     if (!isDrag) {
-                        performAction(event.rawX, event.rawY)
-                        onTouch?.run() // Call onTouch for clicks
+                        performAction(event.rawX.toInt(), event.rawY.toInt())
+                        onTouch?.run()
                         return true
                     }
-
                 }
+
             }
             return false
+        }
+
+        private fun isDragging(event: MotionEvent): Boolean {
+            val dx = event.rawX - initialTouchX
+            val dy = event.rawY - initialTouchY
+            return (dx * dx + dy * dy) > startDragDistance * startDragDistance
         }
     }
 }
