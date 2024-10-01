@@ -6,21 +6,14 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.PixelFormat;
 import android.os.Build;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
-
 import androidx.annotation.Nullable;
-
-import java.util.Arrays;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class FloatingAutoClickService extends Service {
     private WindowManager manager;
@@ -29,16 +22,15 @@ public class FloatingAutoClickService extends Service {
     private WindowManager.LayoutParams params;
     private int xForRecord = 0;
     private int yForRecord = 0;
-    private final int[] location = new int[2];
     private int startDragDistance = 0;
-    private Timer timer;
-    private boolean isOn = false;
     private MyAccessibilityService autoClickService = MyAccessibilityService.getInstance();
-
     private TouchAndDragListener touchAndDragListener;
 
-    private Handler handlerOnClick = new Handler(Looper.getMainLooper());
-    private Runnable runnable;
+    private enum ClickMode {
+        CLICK, SWIPE
+    }
+    private ClickMode currentMode = ClickMode.CLICK;
+
 
     @Nullable
     @Override
@@ -52,9 +44,6 @@ public class FloatingAutoClickService extends Service {
         view = LayoutInflater.from(this).inflate(R.layout.floating_widget, null);
         floatingTextView = view.findViewById(R.id.floatingTextView);
 
-        Log.d("FloatingClickService", "onCreate");
-
-        // Setting the layout parameters
         int overlayParam;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             overlayParam = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
@@ -70,64 +59,46 @@ public class FloatingAutoClickService extends Service {
                 PixelFormat.TRANSLUCENT
         );
 
-        // Getting window services and adding the floating view to it
         manager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
         if (manager != null) {
             manager.addView(view, params);
         }
 
-        // Adding a touch listener to make drag movement of the floating widget
         touchAndDragListener = new TouchAndDragListener(params, startDragDistance,
-                () -> viewOnClick(),
+                () -> switchMode(),
                 () -> manager.updateViewLayout(view, params));
         view.setOnTouchListener(touchAndDragListener);
     }
 
+    private void switchMode() {
+        currentMode = (currentMode == ClickMode.CLICK) ? ClickMode.SWIPE : ClickMode.CLICK;
+        floatingTextView.setText(currentMode == ClickMode.CLICK ? "CLICK" : "SWIPE");
+    }
+
+    private void performAction(float x, float y) {
+        switch (currentMode) {
+            case CLICK:
+                autoClickService.autoClick(0, 10, (int) x, (int) y);
+                break;
+            case SWIPE:
+                autoClickService.autoSwipe(0, 500, (int) x, (int) y, (int) x + 100, (int) y);
+                break;
+        }
+    }
+
+
+
     @Override
     public void onDestroy() {
         super.onDestroy();
-
-        Log.d("FloatingClickService", "onDestroy");
-        if (timer != null) {
-            timer.cancel();
-        }
         if (manager != null && view != null) {
             manager.removeView(view);
         }
     }
 
-    private void viewOnClick() {
-        if (!isOn) {
-            handlerOnClick = new Handler();
-            runnable = new Runnable() {
-                @Override
-                public void run() {
-                    Log.d("FloatingClickService getLocationOnScreen", Arrays.toString(location));
-                    view.getLocationOnScreen(location);
-//                    autoClickService.click(location[0] + view.getRight() + 10,
-//                            location[1] + view.getBottom() + 10);
-//                    autoClickService.autoClick(100, 2, location[0] + view.getRight() + 10,
-//                            location[1] + view.getBottom() + 10);
-
-                    String locX = Float.toString(touchAndDragListener.getInitialX()) + " " + Float.toString(touchAndDragListener.getInitialTouchX());
-                    String locY = Float.toString(touchAndDragListener.getInitialY()) + " " + Float.toString(touchAndDragListener.getInitialTouchY());
-
-                    Log.d("FloatingClickService touchAndDragListener", locX + ", " + locY);
-                    autoClickService.autoClick(100, 2, touchAndDragListener.getInitialX(), touchAndDragListener.getInitialY());
-                }
-            };
-            handlerOnClick.postDelayed(runnable, 200);
-        }
-
-        Log.d("FloatingClickService", "viewOnClick");
-        isOn = !isOn;
-        floatingTextView.setText(isOn ? "ON" : "OFF");
-    }
-
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        Log.d("FloatingClickService", "onConfigurationChanged");
         int x = params.x;
         int y = params.y;
         params.x = xForRecord;
@@ -139,7 +110,70 @@ public class FloatingAutoClickService extends Service {
         }
     }
 
-    private void runOnUiThread(Runnable runnable) {
-        new Handler(Looper.getMainLooper()).post(runnable);
+    private class TouchAndDragListener implements View.OnTouchListener {
+        private final WindowManager.LayoutParams params;
+        private final int startDragDistance;
+        private final Runnable onTouch;
+        private final Runnable onDrag;
+        private int initialX;
+        private int initialY;
+        private float initialTouchX;
+        private float initialTouchY;
+        private boolean isDrag = false;
+
+
+        public TouchAndDragListener(WindowManager.LayoutParams params, int startDragDistance, Runnable onTouch, Runnable onDrag) {
+            this.params = params;
+            this.startDragDistance = startDragDistance;
+            this.onTouch = onTouch;
+            this.onDrag = onDrag;
+        }
+
+        private boolean isDragging(MotionEvent event) {
+            double dx = event.getRawX() - initialTouchX;
+            double dy = event.getRawY() - initialTouchY;
+            return (Math.pow(dx, 2) + Math.pow(dy, 2)) > Math.pow(startDragDistance, 2);
+        }
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    isDrag = false;
+                    initialX = params.x;
+                    initialY = params.y;
+                    initialTouchX = event.getRawX();
+                    initialTouchY = event.getRawY();
+                    return true;
+
+                case MotionEvent.ACTION_MOVE:
+                    if (!isDrag && isDragging(event)) {
+                        isDrag = true;
+                    }
+                    if (!isDrag) return true;
+                    params.x = initialX + (int) (event.getRawX() - initialTouchX);
+                    params.y = initialY + (int) (event.getRawY() - initialTouchY);
+                    if (onDrag != null) {
+                        onDrag.run();
+                    }
+                    return true;
+
+                case MotionEvent.ACTION_UP:
+                    if (!isDrag) {
+                        performAction(event.getRawX(), event.getRawY());
+                        return true;
+                    }
+                    break;
+            }
+            return false;
+        }
+
+
+        public float getInitialTouchY() { return initialTouchY; }
+        public float getInitialTouchX() { return initialTouchX; }
+        public int getInitialY() { return initialY;  }
+        public int getInitialX() { return initialX; }
     }
+
+
 }
