@@ -1,12 +1,8 @@
 package com.example.androidautoclicker;
 
-import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
 import android.graphics.Path;
 import android.graphics.Point;
-import android.graphics.PointF;
-import android.view.MotionEvent;
-import android.view.accessibility.AccessibilityEvent;
 
 public abstract class CustomEvent {
     protected long startTime = 10L;
@@ -14,69 +10,47 @@ public abstract class CustomEvent {
     protected Path path = new Path();
 
     public GestureDescription.StrokeDescription onEvent() {
-        path.reset(); // Reset the path instead of reinitializing it
-        movePath();
+        path.reset();
+        createPath();
         return new GestureDescription.StrokeDescription(path, startTime, duration);
     }
 
-    protected abstract void movePath();
-}
+    protected abstract void createPath();
 
-class Move extends CustomEvent {
-    private final Point to;
-
-    public Move(Point to) {
-        this.to = to;
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
     }
 
-    public Point getTo() {
-        return to;
-    }
-
-    @Override
-    protected void movePath() {
-        path.moveTo(to.x, to.y);
+    public void setDuration(long duration) {
+        this.duration = duration;
     }
 }
 
 class Click extends CustomEvent {
-    private final Point to;
+    private final Point point;
 
-    public Click(Point to) {
-        this.to = to;
-    }
-
-    public Point getTo() {
-        return to;
+    public Click(Point point) {
+        this.point = point;
     }
 
     @Override
-    protected void movePath() {
-        path.moveTo(to.x, to.y);
+    protected void createPath() {
+        path.moveTo(point.x, point.y);
     }
 }
 
 class Swipe extends CustomEvent {
-    private final Point from;
-    private final Point to;
+    private final Point start;
+    private final Point end;
 
-    public Swipe(Point from, Point to) {
-        this.from = from;
-        this.to = to;
-    }
-
-    public Point getFrom() {
-        return from;
-    }
-
-    public Point getTo() {
-        return to;
+    public Swipe(Point start, Point end) {
+        this.start = start;
+        this.end = end;
     }
 
     @Override
-    protected void movePath() {
-        path.moveTo(from.x, from.y);
-        path.lineTo(to.x, to.y);
+    protected void createPath() {
+        path.moveTo(start.x, start.y);
+        path.lineTo(end.x, end.y);
     }
 }
-
