@@ -1,7 +1,6 @@
-
 plugins {
     alias(libs.plugins.android.application)
-    kotlin("android") // Add Kotlin plugin
+    kotlin("android")
 }
 
 android {
@@ -31,14 +30,16 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
-
     kotlinOptions {
         jvmTarget = "1.8"
+    }
+    buildFeatures {
+        viewBinding = true
     }
 }
 
 dependencies {
-    implementation(libs.core.ktx) // Add Kotlin core library
+    implementation(libs.core.ktx)
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.constraintlayout)
